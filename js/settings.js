@@ -69,7 +69,7 @@ const SettingsManager = {
                 format: 'blog',
                 category: 'AI',
                 tags: ['AI', 'Gemini', '자동화'],
-                gemini_api_key: 'AIzaSyCtwyzmDuhb6j177sA26JL6P3K2-pOJ5OQ',
+                gemini_api_key: '',
                 autoSave: true,
                 autoPreview: true
             };

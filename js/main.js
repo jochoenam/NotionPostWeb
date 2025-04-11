@@ -16,9 +16,9 @@ const APP = {
     
     // API 토큰 및 키
     api: {
-        notionToken: 'ntn_59196931721m9GCQPZe6CPhscvxSMT9DicBmu7OledDV',
-        notionDatabaseId: '1c7dc869-7e89-81ce-8f16-d09e8cf38c46',
-        geminiApiKey: 'AIzaSyCtwyzrnDuhb6J177sA26iL6P3K2-POJ5OQ'
+        notionToken: '',
+        notionDatabaseId: '',
+        geminiApiKey: ''
     },
     
     // DOM 요소 참조
