@@ -38,59 +38,126 @@ const APP = {
     
     // 설정 로드
     loadConfig: function() {
-        const config = localStorage.getItem('notionPostConfig');
-        if (config) {
-            try {
+        try {
+            const config = localStorage.getItem('notionPostConfig');
+            if (config) {
                 const parsedConfig = JSON.parse(config);
-                this.api.notionToken = parsedConfig.token || this.api.notionToken;
-                this.api.notionDatabaseId = parsedConfig.database_id || this.api.notionDatabaseId;
-                this.api.geminiApiKey = parsedConfig.gemini_api_key || this.api.geminiApiKey;
                 
+                // API 키 설정
+                if (parsedConfig.token) {
+                    this.api.notionToken = parsedConfig.token;
+                }
+                
+                if (parsedConfig.database_id) {
+                    this.api.notionDatabaseId = parsedConfig.database_id;
+                }
+                
+                if (parsedConfig.gemini_api_key) {
+                    this.api.geminiApiKey = parsedConfig.gemini_api_key;
+                }
+                
+                // 폼 필드에 값 설정
+                if (this.elements.notionToken) {
+                    this.elements.notionToken.value = this.api.notionToken;
+                }
+                
+                if (this.elements.notionDatabaseId) {
+                    this.elements.notionDatabaseId.value = this.api.notionDatabaseId;
+                }
+                
+                if (this.elements.geminiApiKey) {
+                    this.elements.geminiApiKey.value = this.api.geminiApiKey;
+                }
+                
+                // 상태 설정
                 this.state.autoSave = parsedConfig.autoSave !== undefined ? parsedConfig.autoSave : true;
                 this.state.autoPreview = parsedConfig.autoPreview !== undefined ? parsedConfig.autoPreview : true;
 
-                // API 키 유효성 검사
-                if (!this.api.geminiApiKey) {
-                    UI.updateStatus('Gemini API 키가 설정되지 않았습니다. 설정에서 API 키를 입력해주세요.', 'warning');
-                }
-                if (!this.api.notionToken) {
-                    UI.updateStatus('Notion 토큰이 설정되지 않았습니다. 설정에서 토큰을 입력해주세요.', 'warning');
-                }
-            } catch (e) {
-                console.error('설정 파싱 오류:', e);
-                UI.updateStatus('설정을 불러오는 중 오류가 발생했습니다.', 'error');
+                console.log('설정 로드 완료:', {
+                    notionToken: this.api.notionToken ? '설정됨' : '미설정',
+                    databaseId: this.api.notionDatabaseId ? '설정됨' : '미설정',
+                    geminiApiKey: this.api.geminiApiKey ? '설정됨' : '미설정'
+                });
+            } else {
+                console.log('저장된 설정이 없습니다. 기본값 사용.');
+                
+                // 디폴트 값 설정
+                this.setDefaultValues();
             }
+        } catch (e) {
+            console.error('설정 로드 오류:', e);
+            
+            // 오류 발생 시 기본값 설정
+            this.setDefaultValues();
         }
+    },
+    
+    // 기본값 설정
+    setDefaultValues: function() {
+        // 디폴트 값
+        this.api.notionToken = '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';
+        this.api.notionDatabaseId = '1c7dc869-7e89-81ce-8f16-d99e8cf38c46';
+        this.api.geminiApiKey = 'AIzaSyCtwyzmDuhb6j177sA26JL6P3K2-pOJ5OQ';
         
-        // DOM 요소가 초기화된 후에 설정 값 적용
+        // 폼 필드에 값 설정
         if (this.elements.notionToken) {
             this.elements.notionToken.value = this.api.notionToken;
+        }
+        
+        if (this.elements.notionDatabaseId) {
             this.elements.notionDatabaseId.value = this.api.notionDatabaseId;
+        }
+        
+        if (this.elements.geminiApiKey) {
             this.elements.geminiApiKey.value = this.api.geminiApiKey;
+        }
+        
+        console.log('기본값 설정 완료');
+    },
+    
+    // API 키 유효성 검사
+    validateApiKeys: function() {
+        let warnings = [];
+        
+        if (!this.api.geminiApiKey) {
+            warnings.push('Gemini API 키가 설정되지 않았습니다.');
+        }
+        if (!this.api.notionToken) {
+            warnings.push('Notion 토큰이 설정되지 않았습니다.');
+        }
+        if (!this.api.notionDatabaseId) {
+            warnings.push('Notion 데이터베이스 ID가 설정되지 않았습니다.');
+        }
+        
+        if (warnings.length > 0) {
+            UI.updateStatus(warnings.join(' '), 'warning');
+            UI.showAlert('일부 API 키가 설정되지 않았습니다. 설정 탭에서 확인해주세요.');
         }
     },
     
     // 설정 저장
     saveConfig: function() {
-        const config = {
-            token: this.api.notionToken,
-            database_id: this.api.notionDatabaseId,
-            gemini_api_key: this.api.geminiApiKey,
-            autoSave: this.state.autoSave,
-            autoPreview: this.state.autoPreview
-        };
-        
         try {
+            // 현재 입력 필드 값으로 API 키 업데이트
+            this.api.notionToken = this.elements.notionToken.value.trim();
+            this.api.notionDatabaseId = this.elements.notionDatabaseId.value.trim();
+            this.api.geminiApiKey = this.elements.geminiApiKey.value.trim();
+            
+            const config = {
+                token: this.api.notionToken,
+                database_id: this.api.notionDatabaseId,
+                gemini_api_key: this.api.geminiApiKey,
+                autoSave: this.state.autoSave,
+                autoPreview: this.state.autoPreview
+            };
+            
             localStorage.setItem('notionPostConfig', JSON.stringify(config));
+            console.log('설정 저장 완료');
+            
             UI.updateStatus('설정이 저장되었습니다.');
             
             // API 키 유효성 검사
-            if (!this.api.geminiApiKey) {
-                UI.updateStatus('Gemini API 키가 설정되지 않았습니다. 설정에서 API 키를 입력해주세요.', 'warning');
-            }
-            if (!this.api.notionToken) {
-                UI.updateStatus('Notion 토큰이 설정되지 않았습니다. 설정에서 토큰을 입력해주세요.', 'warning');
-            }
+            this.validateApiKeys();
         } catch (e) {
             console.error('설정 저장 오류:', e);
             UI.updateStatus('설정을 저장하는 중 오류가 발생했습니다.', 'error');

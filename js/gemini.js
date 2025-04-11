@@ -34,6 +34,12 @@ const GeminiManager = {
             if (!data.response || !data.response.text) {
                 throw new Error('Gemini API가 유효한 응답을 반환하지 않았습니다.');
             }
+            
+            // 사용된 모델 정보 로깅
+            if (data.response.model) {
+                console.log(`사용된 Gemini 모델: ${data.response.model}`);
+            }
+            
             return data.response.text;
         } catch (error) {
             console.error('Gemini API Error:', error);
@@ -69,6 +75,9 @@ const GeminiManager = {
                 }
             }
             
+            // 디버깅 정보
+            console.log('Gemini API 키 상태:', apiKey ? '설정됨' : '미설정');
+            
             if (!apiKey) {
                 throw new Error('API 키가 제공되지 않았습니다. 설정에서 API 키를 입력해주세요.');
             }
@@ -86,7 +95,7 @@ const GeminiManager = {
         return [
             'gemini-1.5-flash',
             'gemini-1.5-pro',
-            'gemini-1.0-pro'
+            'gemini-pro'
         ];
     }
 };

@@ -9,41 +9,44 @@ const SettingsManager = {
     
     // 설정 저장
     saveSettings: function() {
+        // 폼에서 값 가져오기
+        const token = APP.elements.notionToken.value;
+        const databaseId = APP.elements.notionDatabaseId.value;
+        const geminiApiKey = APP.elements.geminiApiKey.value;
+        const autoSave = APP.elements.autoSaveCheckbox.checked;
+        const autoPreview = APP.elements.autoPreviewCheckbox.checked;
+        
+        // API 개체에 설정
+        APP.api.notionToken = token;
+        APP.api.notionDatabaseId = databaseId;
+        APP.api.geminiApiKey = geminiApiKey;
+        
+        // 상태 개체에 설정
+        APP.state.autoSave = autoSave;
+        APP.state.autoPreview = autoPreview;
+        
+        // 로컬 스토리지에 저장
         const config = {
-            token: APP.elements.notionToken.value,
-            database_id: APP.elements.notionDatabaseId.value,
-            format: APP.elements.formatCombo.value,
-            category: APP.elements.categoryEntry.value,
-            tags: APP.elements.tagsEntry.value.split(',').map(tag => tag.trim()).filter(tag => tag),
-            gemini_api_key: APP.elements.geminiApiKey.value,
-            autoSave: APP.elements.autoSaveCheckbox.checked,
-            autoPreview: APP.elements.autoPreviewCheckbox.checked
+            token: token,
+            database_id: databaseId,
+            gemini_api_key: geminiApiKey,
+            autoSave: autoSave,
+            autoPreview: autoPreview
         };
         
         try {
-            localStorage.setItem(this.STORAGE_KEY, JSON.stringify(config));
-            
-            // 앱 상태 업데이트
-            APP.api.notionToken = config.token;
-            APP.api.notionDatabaseId = config.database_id;
-            APP.api.geminiApiKey = config.gemini_api_key;
-            APP.state.autoSave = config.autoSave;
-            APP.state.autoPreview = config.autoPreview;
-            
-            // 자동 저장 설정 업데이트
-            if (config.autoSave) {
-                APP.startAutoSave();
-            } else {
-                APP.stopAutoSave();
-            }
-            
-            // 자동 미리보기 설정 업데이트 (페이지 새로고침 필요)
-            
-            UI.showAlert('설정이 저장되었습니다.');
-            UI.updateStatus('설정 저장 완료');
-        } catch (error) {
-            UI.showAlert(`설정 저장 중 오류가 발생했습니다: ${error.message || error}`);
-            UI.updateStatus('설정 저장 실패');
+            localStorage.setItem('notionPostConfig', JSON.stringify(config));
+            console.log('설정 저장 완료:', {
+                notionToken: token ? '설정됨' : '미설정',
+                databaseId: databaseId ? '설정됨' : '미설정',
+                geminiApiKey: geminiApiKey ? '설정됨' : '미설정',
+            });
+            UI.showToast('설정이 저장되었습니다.');
+            UI.updateStatus('설정이 저장되었습니다.');
+        } catch (e) {
+            console.error('설정 저장 오류:', e);
+            UI.showAlert('설정을 저장하는 중 오류가 발생했습니다.');
+            UI.updateStatus('설정 저장 실패', 'error');
         }
     },
     

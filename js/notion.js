@@ -12,14 +12,21 @@ const NotionManager = {
     
     // 데이터베이스 ID 형식 변환
     formatDatabaseId: function(databaseId) {
-        // 하이픈이 이미 포함된 경우 그대로 반환
-        if (databaseId.includes('-')) return databaseId;
+        if (!databaseId) return '';
+        
+        // 하이픈 제거
+        const cleanId = databaseId.replace(/-/g, '');
         
         // 32자리가 아닌 경우 원본 반환
-        if (databaseId.length !== 32) return databaseId;
+        if (cleanId.length !== 32) {
+            console.warn('데이터베이스 ID가 32자리가 아닙니다:', databaseId);
+            return databaseId;
+        }
         
-        // 8-4-4-4-12 형식으로 변환
-        return `${databaseId.slice(0,8)}-${databaseId.slice(8,12)}-${databaseId.slice(12,16)}-${databaseId.slice(16,20)}-${databaseId.slice(20)}`;
+        // UUID 형식(8-4-4-4-12)으로 변환
+        const formatted = `${cleanId.slice(0,8)}-${cleanId.slice(8,12)}-${cleanId.slice(12,16)}-${cleanId.slice(16,20)}-${cleanId.slice(20)}`;
+        console.log('데이터베이스 ID 변환:', databaseId, '->', formatted);
+        return formatted;
     },
     
     // API 호출
@@ -42,12 +49,25 @@ const NotionManager = {
                 })
             });
 
+            const text = await response.text();
+            
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({ error: '알 수 없는 오류가 발생했습니다.' }));
-                throw new Error(errorData.error || `API 호출 실패: ${response.status}`);
+                let errorMessage;
+                try {
+                    const errorData = JSON.parse(text);
+                    errorMessage = errorData.error || `API 호출 실패: ${response.status}`;
+                } catch (e) {
+                    errorMessage = text || `API 호출 실패: ${response.status}`;
+                }
+                throw new Error(errorMessage);
             }
 
-            return await response.json();
+            try {
+                return text ? JSON.parse(text) : {};
+            } catch (e) {
+                console.error('JSON 파싱 오류:', e);
+                throw new Error(`응답 데이터 파싱 오류: ${text}`);
+            }
         } catch (error) {
             console.error('Notion API 호출 오류:', error);
             throw new Error(`Notion API 오류: ${error.message}`);
@@ -101,6 +121,20 @@ const NotionManager = {
             // 데이터베이스 ID 형식 변환
             const formattedId = this.formatDatabaseId(databaseId);
             
+            // 태그 처리 개선
+            let processedTags = [];
+            if (tags) {
+                if (Array.isArray(tags)) {
+                    processedTags = tags.map(tag => ({
+                        name: typeof tag === 'string' ? tag.trim() : (tag.name || String(tag)).trim()
+                    }));
+                } else if (typeof tags === 'string') {
+                    processedTags = tags.split(',').map(tag => ({
+                        name: tag.trim()
+                    })).filter(tag => tag.name);
+                }
+            }
+            
             // 속성 설정
             const properties = {
                 제목: {
@@ -119,19 +153,12 @@ const NotionManager = {
                     }
                 },
                 태그: {
-                    multi_select: tags ? (Array.isArray(tags) ? tags.map(tag => ({
-                        name: typeof tag === 'string' ? tag.trim() : tag.name || tag
-                    })) : tags.split(',').map(tag => ({
-                        name: tag.trim()
-                    }))) : []
+                    multi_select: processedTags
                 }
             };
 
-            // 콘텐츠가 문자열이 아닌 경우 처리
-            const contentStr = typeof content === 'string' ? content : JSON.stringify(content, null, 2);
-            
-            // 블록 변환
-            const blocks = this.convertToBlocks(contentStr);
+            // 콘텐츠 처리 개선
+            const contentBlocks = Array.isArray(content) ? content : this.convertToBlocks(content);
 
             const result = await this.callNotionAPI(
                 '/pages/create',
@@ -139,7 +166,7 @@ const NotionManager = {
                 {
                     databaseId: formattedId,
                     properties,
-                    children: blocks
+                    children: contentBlocks
                 },
                 token
             );

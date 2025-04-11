@@ -29,9 +29,13 @@ exports.handler = async function(event, context) {
     // Gemini AI 초기화
     const genAI = new GoogleGenerativeAI(apiKey);
     
+    // 사용 가능한 모델 목록
+    const availableModels = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro'];
+    let selectedModel = 'gemini-1.5-flash'; // 기본 모델을 최신 모델로 변경
+    
     // API 키 유효성 검사
     try {
-      const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+      const model = genAI.getGenerativeModel({ model: selectedModel });
       const result = await model.generateContent('test');  // 간단한 테스트 요청
       if (!result.response) {
         throw new Error('API 키가 유효하지 않습니다.');
@@ -40,11 +44,42 @@ exports.handler = async function(event, context) {
       if (error.message.includes('API_KEY_INVALID')) {
         throw new Error('유효하지 않은 API 키입니다.');
       }
-      throw error;
+      
+      // 모델 오류인 경우 다른 모델 시도
+      if (error.message.includes('not found') || error.message.includes('not supported')) {
+        console.log(`${selectedModel} 모델이 지원되지 않습니다. 다른 모델 시도...`);
+        
+        // 다른 모델 시도
+        for (const modelName of availableModels) {
+          if (modelName !== selectedModel) {
+            try {
+              console.log(`${modelName} 모델 시도 중...`);
+              const fallbackModel = genAI.getGenerativeModel({ model: modelName });
+              const fallbackResult = await fallbackModel.generateContent('test');
+              if (fallbackResult.response) {
+                console.log(`${modelName} 모델 사용 가능`);
+                selectedModel = modelName;
+                break;
+              }
+            } catch (fallbackError) {
+              console.log(`${modelName} 모델 실패:`, fallbackError.message);
+              continue;
+            }
+          }
+        }
+        
+        if (selectedModel === 'gemini-1.5-flash') {
+          throw new Error('사용 가능한 Gemini 모델을 찾을 수 없습니다.');
+        }
+      } else {
+        throw error;
+      }
     }
     
+    console.log(`최종 선택된 모델: ${selectedModel}`);
+    
     // 실제 콘텐츠 생성
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    const model = genAI.getGenerativeModel({ model: selectedModel });
     const result = await model.generateContent(prompt);
     const response = await result.response;
     
@@ -58,7 +93,8 @@ exports.handler = async function(event, context) {
       headers,
       body: JSON.stringify({
         response: {
-          text: response.text
+          text: response.text,
+          model: selectedModel
         }
       })
     };
