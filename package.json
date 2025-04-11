@@ -1,13 +1,18 @@
 {
-  "name": "notionpostweb",
+  "name": "notion-post-web",
   "version": "1.0.0",
-  "description": "NotionPost Web Application",
-  "dependencies": {
-    "node-fetch": "^2.6.1",
-    "@notionhq/client": "^2.2.14",
-    "@google/generative-ai": "^0.2.0"
-  },
+  "description": "NotionPost Web - Notion API와 Gemini AI를 활용한 콘텐츠 관리 도구",
+  "main": "index.js",
   "scripts": {
-    "build": "npm install"
+    "dev": "netlify dev",
+    "build": "netlify build"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.2.0",
+    "@notionhq/client": "^2.2.14",
+    "node-fetch": "^2.7.0"
+  },
+  "devDependencies": {
+    "netlify-cli": "^17.0.0"
   }
 } 
