@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NotionPost - Gemini AI to Notion</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📝</text></svg>" type="image/svg+xml">
+</head>
+<body>
+    <!-- 스플래시 화면 -->
+    <div id="splash-screen">
+        <div class="splash-content">
+            <h1>NotionPost</h1>
+            <p>Gemini AI + Notion 통합 도구</p>
+            <p class="loading-text">로딩 중...</p>
+            <div class="progress-bar">
+                <div class="progress-fill"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 메인 앱 컨테이너 -->
+    <div id="app-container" style="display: none;">
+        <!-- 상단 헤더 -->
+        <header>
+            <h1>NotionPost - Gemini AI to Notion</h1>
+        </header>
+
+        <!-- 메인 탭 내비게이션 -->
+        <div class="tab-navigation">
+            <button class="tab-btn active" data-tab="main">메인</button>
+            <button class="tab-btn" data-tab="preview">미리보기</button>
+            <button class="tab-btn" data-tab="templates">템플릿</button>
+            <button class="tab-btn" data-tab="history">히스토리</button>
+            <button class="tab-btn" data-tab="settings">설정</button>
+        </div>
+
+        <!-- 탭 콘텐츠 영역 -->
+        <div class="tab-content">
+            <!-- 메인 탭 -->
+            <div id="main-tab" class="tab-pane active">
+                <div class="main-layout">
+                    <!-- 입력 영역 -->
+                    <div class="input-frame">
+                        <h2>콘텐츠 입력</h2>
+                        <div class="title-frame">
+                            <label for="title-entry">제목:</label>
+                            <input type="text" id="title-entry" class="title-input">
+                        </div>
+                        <div class="content-frame">
+                            <label for="content-text">내용:</label>
+                            <textarea id="content-text" class="content-textarea"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- 도구 및 미리보기 영역 -->
+                    <div class="tools-frame">
+                        <h2>도구 및 미리보기</h2>
+                        <div class="tools-tabs">
+                            <button class="tool-tab-btn active" data-tool-tab="preview-tool">미리보기</button>
+                            <button class="tool-tab-btn" data-tool-tab="format-tool">형식 설정</button>
+                        </div>
+
+                        <!-- 미리보기 도구 탭 -->
+                        <div id="preview-tool" class="tool-tab-pane active">
+                            <div class="preview-content">
+                                <textarea id="preview-text" class="preview-textarea" readonly></textarea>
+                            </div>
+                        </div>
+
+                        <!-- 형식 설정 도구 탭 -->
+                        <div id="format-tool" class="tool-tab-pane">
+                            <div class="format-options">
+                                <div class="option-row">
+                                    <label for="format-combo">포맷:</label>
+                                    <select id="format-combo" class="format-select">
+                                        <option value="qa">Q&A</option>
+                                        <option value="blog" selected>블로그</option>
+                                        <option value="summary">요약</option>
+                                        <option value="guide">가이드</option>
+                                    </select>
+                                </div>
+                                <div class="option-row">
+                                    <label for="category-entry">카테고리:</label>
+                                    <input type="text" id="category-entry" class="category-input" value="AI">
+                                </div>
+                                <div class="option-row">
+                                    <label for="tags-entry">태그:</label>
+                                    <input type="text" id="tags-entry" class="tags-input" value="AI,Gemini,자동화">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 버튼 영역 -->
+                <div class="button-area">
+                    <div class="left-buttons">
+                        <button id="generate-btn" class="accent-btn">AI로 콘텐츠 생성</button>
+                        <button id="clear-btn" class="normal-btn">내용 지우기</button>
+                    </div>
+                    <div class="right-buttons">
+                        <button id="refresh-preview-btn" class="normal-btn">미리보기 새로고침</button>
+                        <button id="post-btn" class="accent-btn">노션에 포스팅</button>
+                    </div>
+                </div>
+                
+                <!-- 노션 링크 표시 영역 -->
+                <div id="notion-links-area" class="notion-links-area" style="display: none;">
+                    <h3>최근 노션 페이지 링크</h3>
+                    <div id="notion-links-container" class="notion-links-container">
+                        <!-- 링크가 여기에 추가됩니다 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 미리보기 탭 -->
+            <div id="preview-tab" class="tab-pane">
+                <div class="preview-frame">
+                    <div class="preview-title-frame">
+                        <h2>미리보기 제목</h2>
+                        <input type="text" id="preview-title" class="preview-title-input" readonly>
+                    </div>
+                    <div class="preview-content-frame">
+                        <h2>미리보기 내용</h2>
+                        <textarea id="full-preview-text" class="full-preview-textarea" readonly></textarea>
+                    </div>
+                    <div class="preview-button-frame">
+                        <button id="refresh-full-preview-btn" class="normal-btn">미리보기 새로고침</button>
+                        <button id="post-from-preview-btn" class="accent-btn">노션에 포스팅</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 템플릿 탭 -->
+            <div id="templates-tab" class="tab-pane">
+                <div class="templates-layout">
+                    <!-- 템플릿 목록 영역 -->
+                    <div class="template-list-frame">
+                        <h2>저장된 템플릿</h2>
+                        <div class="template-list-container">
+                            <select id="template-listbox" class="template-list" size="10"></select>
+                        </div>
+                        <div class="template-buttons">
+                            <button id="apply-template-btn" class="normal-btn">적용</button>
+                            <button id="delete-template-btn" class="normal-btn">삭제</button>
+                        </div>
+                    </div>
+
+                    <!-- 템플릿 편집 영역 -->
+                    <div class="template-edit-frame">
+                        <h2>템플릿 만들기</h2>
+                        <div class="template-name-container">
+                            <label for="template-name">템플릿 이름:</label>
+                            <input type="text" id="template-name" class="template-name-input">
+                        </div>
+                        <div class="template-content-container">
+                            <label for="template-content">템플릿 내용:</label>
+                            <textarea id="template-content" class="template-content-textarea"></textarea>
+                        </div>
+                        <div class="template-save-buttons">
+                            <button id="load-to-template-btn" class="normal-btn">현재 내용 가져오기</button>
+                            <button id="save-template-btn" class="normal-btn">템플릿 저장</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 히스토리 탭 -->
+            <div id="history-tab" class="tab-pane">
+                <div class="history-layout">
+                    <!-- 히스토리 목록 영역 -->
+                    <div class="history-list-frame">
+                        <h2>작성 히스토리</h2>
+                        <div class="search-container">
+                            <label for="search-entry">검색:</label>
+                            <input type="text" id="search-entry" class="search-input">
+                            <button id="search-history-btn" class="icon-btn">🔍</button>
+                        </div>
+                        <div class="history-list-container">
+                            <select id="history-listbox" class="history-list" size="10"></select>
+                        </div>
+                        <div class="history-buttons">
+                            <button id="load-history-btn" class="normal-btn">불러오기</button>
+                            <button id="delete-history-btn" class="normal-btn">삭제</button>
+                        </div>
+                    </div>
+
+                    <!-- 히스토리 미리보기 영역 -->
+                    <div class="history-preview-frame">
+                        <h2>미리보기</h2>
+                        <textarea id="history-preview" class="history-preview-textarea" readonly></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 설정 탭 -->
+            <div id="settings-tab" class="tab-pane">
+                <div class="settings-layout">
+                    <!-- API 설정 영역 -->
+                    <div class="api-settings-frame">
+                        <h2>API 설정</h2>
+                        <div class="setting-row">
+                            <label for="notion-token">Notion API 토큰:</label>
+                            <input type="text" id="notion-token" class="setting-input">
+                            <button id="token-help-btn" class="help-btn">?</button>
+                        </div>
+                        <div class="setting-row">
+                            <label for="notion-database-id">Notion 데이터베이스 ID:</label>
+                            <input type="text" id="notion-database-id" class="setting-input">
+                            <button id="database-help-btn" class="help-btn">?</button>
+                            <button id="check-integration-btn" class="normal-btn">통합 확인</button>
+                        </div>
+                        <div class="setting-row">
+                            <label for="gemini-api-key">Gemini API 키:</label>
+                            <input type="text" id="gemini-api-key" class="setting-input" value="AIzaSyCtwyzmDuhb6j177sA26JL6P3K2-pOJ5OQ">
+                            <button id="gemini-help-btn" class="help-btn">?</button>
+                        </div>
+                    </div>
+
+                    <!-- 데이터베이스 생성 영역 -->
+                    <div class="database-create-frame">
+                        <h2>새 데이터베이스 생성</h2>
+                        <div class="setting-row">
+                            <label for="page-id">페이지 ID:</label>
+                            <input type="text" id="page-id" class="setting-input">
+                            <button id="page-id-help-btn" class="help-btn">?</button>
+                            <button id="create-database-btn" class="normal-btn">데이터베이스 생성</button>
+                        </div>
+                        <p class="info-text">데이터베이스 ID를 찾을 수 없는 경우, 페이지 ID를 입력하여 새 데이터베이스를 생성할 수 있습니다.</p>
+                    </div>
+
+                    <!-- UI 설정 영역 -->
+                    <div class="ui-settings-frame">
+                        <h2>UI 설정</h2>
+                        <div class="setting-row">
+                            <input type="checkbox" id="autosave-checkbox" checked>
+                            <label for="autosave-checkbox">자동 저장 활성화 (5분 간격)</label>
+                        </div>
+                        <div class="setting-row">
+                            <input type="checkbox" id="autopreview-checkbox" checked>
+                            <label for="autopreview-checkbox">자동 미리보기 업데이트</label>
+                        </div>
+                    </div>
+
+                    <!-- 설정 저장 버튼 -->
+                    <div class="settings-save-frame">
+                        <button id="save-settings-btn" class="accent-btn">설정 저장</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 상태 표시줄 -->
+        <div class="status-bar">
+            <div id="status-message" class="status-message">준비 완료. Gemini AI 및 Notion과 연동하여 콘텐츠를 관리하세요.</div>
+            <div class="version">v1.0</div>
+        </div>
+    </div>
+
+    <!-- 모달 대화상자 -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h2 id="modal-title">알림</h2>
+            <p id="modal-message"></p>
+            <div class="modal-buttons">
+                <button id="modal-cancel-btn" class="normal-btn">취소</button>
+                <button id="modal-confirm-btn" class="accent-btn">확인</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 로딩 스피너 -->
+    <div id="loading-spinner" class="loading-spinner" style="display: none;">
+        <div class="spinner"></div>
+        <p id="loading-message">처리 중...</p>
+    </div>
+
+    <!-- JavaScript 파일 -->
+    <script src="js/main.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/notion.js"></script>
+    <script src="js/gemini.js"></script>
+    <script src="js/templates.js"></script>
+    <script src="js/history.js"></script>
+    <script src="js/settings.js"></script>
+</body>
+</html>
