@@ -436,13 +436,13 @@ const NotionManager = {
                 },
                 카테고리: {
                     select: {
-                        name: category
+                        name: category || '미분류'  // 카테고리가 없을 경우 기본값 설정
                     }
                 },
                 태그: {
-                    multi_select: tags.split(',').map(tag => ({
+                    multi_select: tags ? tags.split(',').map(tag => ({
                         name: tag.trim()
-                    }))
+                    })) : []  // 태그가 없을 경우 빈 배열 반환
                 }
             };
 

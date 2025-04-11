@@ -16,9 +16,9 @@ const APP = {
     
     // API 토큰 및 키
     api: {
-        notionToken: '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',
-        notionDatabaseId: '1c7dc8697e89808b9594ee66bf22a2c5',
-        geminiApiKey: 'AIzaSyCtwyzmDuhb6j177sA26JL6P3K2-pOJ5OQ'
+        notionToken: '',
+        notionDatabaseId: '',
+        geminiApiKey: ''
     },
     
     // DOM 요소 참조
@@ -44,7 +44,7 @@ const APP = {
                 const parsedConfig = JSON.parse(config);
                 this.api.notionToken = parsedConfig.token || '';
                 this.api.notionDatabaseId = parsedConfig.database_id || '';
-                this.api.geminiApiKey = parsedConfig.gemini_api_key || 'AIzaSyCtwyzmDuhb6j177sA26JL6P3K2-pOJ5OQ';
+                this.api.geminiApiKey = parsedConfig.gemini_api_key || '';
                 
                 this.state.autoSave = parsedConfig.autoSave !== undefined ? parsedConfig.autoSave : true;
                 this.state.autoPreview = parsedConfig.autoPreview !== undefined ? parsedConfig.autoPreview : true;
