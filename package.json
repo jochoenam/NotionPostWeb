@@ -3,6 +3,11 @@
   "version": "1.0.0",
   "description": "NotionPost Web Application",
   "dependencies": {
-    "node-fetch": "^2.6.1"
+    "node-fetch": "^2.6.1",
+    "@notionhq/client": "^2.2.14",
+    "@google/generative-ai": "^0.2.0"
+  },
+  "scripts": {
+    "build": "npm install"
   }
 } 

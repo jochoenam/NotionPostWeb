@@ -1,4 +1,4 @@
-const fetch = require('node-fetch');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 exports.handler = async function(event, context) {
   const headers = {
@@ -17,28 +17,30 @@ exports.handler = async function(event, context) {
 
   try {
     const { prompt, apiKey } = JSON.parse(event.body);
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+    
+    // Gemini AI 초기화
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+
+    // 콘텐츠 생성
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    
+    return {
+      statusCode: 200,
+      headers,
       body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: prompt
-          }]
+        candidates: [{
+          content: {
+            parts: [{
+              text: response.text()
+            }]
+          }
         }]
       })
-    });
-
-    const data = await response.json();
-
-    return {
-      statusCode: response.status,
-      headers,
-      body: JSON.stringify(data)
     };
   } catch (error) {
+    console.error('Gemini API Error:', error);
     return {
       statusCode: 500,
       headers,
