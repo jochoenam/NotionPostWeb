@@ -12,19 +12,14 @@ const NotionManager = {
     
     // 데이터베이스 ID 형식 변환
     formatDatabaseId: function(databaseId) {
-        // 하이픈 제거
-        let cleanId = databaseId.replace(/-/g, '');
+        // 하이픈이 이미 포함된 경우 그대로 반환
+        if (databaseId.includes('-')) return databaseId;
         
-        // 길이가 32자리가 아니면 그대로 반환
-        if (cleanId.length !== 32) {
-            return databaseId;
-        }
+        // 32자리가 아닌 경우 원본 반환
+        if (databaseId.length !== 32) return databaseId;
         
-        // UUID 형식으로 변환 (8-4-4-4-12)
-        const formattedId = `${cleanId.substr(0, 8)}-${cleanId.substr(8, 4)}-${cleanId.substr(12, 4)}-${cleanId.substr(16, 4)}-${cleanId.substr(20, 12)}`;
-        
-        console.log(`데이터베이스 ID 형식 변환: ${databaseId} -> ${formattedId}`);
-        return formattedId;
+        // 8-4-4-4-12 형식으로 변환
+        return `${databaseId.slice(0,8)}-${databaseId.slice(8,12)}-${databaseId.slice(12,16)}-${databaseId.slice(16,20)}-${databaseId.slice(20)}`;
     },
     
     // API 호출을 위한 헤더 생성
@@ -379,7 +374,8 @@ const NotionManager = {
 
     async callNotionAPI(path, method, body, token) {
         try {
-            const response = await fetch('/api/notion-api', {
+            console.log('Calling Notion API:', { path, method });
+            const response = await fetch('/.netlify/functions/notion-api', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -393,14 +389,98 @@ const NotionManager = {
             });
 
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                const errorData = await response.json();
+                throw new Error(`Notion API Error: ${errorData.error || response.statusText}`);
             }
 
             return await response.json();
         } catch (error) {
-            console.error('Error calling Notion API:', error);
+            console.error('Notion API Error:', error);
             throw error;
         }
+    },
+
+    async checkDatabase(databaseId, token) {
+        try {
+            const formattedId = this.formatDatabaseId(databaseId);
+            console.log('데이터베이스 ID 형식 변환:', databaseId, '->', formattedId);
+            
+            const result = await this.callNotionAPI(
+                `/databases/${formattedId}`,
+                'GET',
+                null,
+                token
+            );
+            
+            return result;
+        } catch (error) {
+            console.error('데이터베이스 확인 오류:', error);
+            throw error;
+        }
+    },
+
+    async createPage(databaseId, title, content, category, tags, token) {
+        try {
+            const formattedId = this.formatDatabaseId(databaseId);
+            console.log('Creating page in database:', formattedId);
+            
+            const properties = {
+                제목: {
+                    title: [
+                        {
+                            text: {
+                                content: title
+                            }
+                        }
+                    ]
+                },
+                카테고리: {
+                    select: {
+                        name: category
+                    }
+                },
+                태그: {
+                    multi_select: tags.split(',').map(tag => ({
+                        name: tag.trim()
+                    }))
+                }
+            };
+
+            const blocks = this.convertToBlocks(content);
+
+            const result = await this.callNotionAPI(
+                '/pages',
+                'POST',
+                {
+                    parent: { database_id: formattedId },
+                    properties,
+                    children: blocks
+                },
+                token
+            );
+
+            return result;
+        } catch (error) {
+            console.error('페이지 생성 오류:', error);
+            throw error;
+        }
+    },
+
+    convertToBlocks(content) {
+        return content.split('\n\n').map(paragraph => ({
+            object: 'block',
+            type: 'paragraph',
+            paragraph: {
+                rich_text: [
+                    {
+                        type: 'text',
+                        text: {
+                            content: paragraph
+                        }
+                    }
+                ]
+            }
+        }));
     }
 };
 
