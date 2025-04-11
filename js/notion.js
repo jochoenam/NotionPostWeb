@@ -375,6 +375,32 @@ const NotionManager = {
                 this.links = [];
             }
         }
+    },
+
+    async callNotionAPI(path, method, body, token) {
+        try {
+            const response = await fetch('/api/notion-api', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    path,
+                    method,
+                    body,
+                    token
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error calling Notion API:', error);
+            throw error;
+        }
     }
 };
 

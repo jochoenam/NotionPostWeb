@@ -1,0 +1,8 @@
+{
+  "name": "notionpostweb",
+  "version": "1.0.0",
+  "description": "NotionPost Web Application",
+  "dependencies": {
+    "node-fetch": "^2.6.1"
+  }
+} 

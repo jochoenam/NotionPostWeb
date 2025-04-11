@@ -26,30 +26,26 @@ const GeminiManager = {
         }
         
         try {
-            const response = await fetch(`${this.API_URL}?key=${apiKey}`, {
+            const response = await fetch('/api/gemini-api', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    contents: [{
-                        parts: [{
-                            text: prompt
-                        }]
-                    }]
+                    prompt,
+                    apiKey
                 })
             });
             
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(`Gemini API 오류 (${response.status}): ${errorData.error?.message || '알 수 없는 오류'}`);
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
             
             const data = await response.json();
             return data.candidates[0].content.parts[0].text;
         } catch (error) {
-            console.error('Gemini API 응답 오류:', error);
-            throw new Error(`Gemini API 오류: ${error.message || error}`);
+            console.error('Error calling Gemini API:', error);
+            throw error;
         }
     },
     
