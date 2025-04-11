@@ -31,8 +31,11 @@ exports.handler = async function(event, context) {
     
     // API 키 유효성 검사
     try {
-      const model = genAI.getGenerativeModel({ model: 'gemini-1.0-pro' });
-      await model.generateContent('test');  // 간단한 테스트 요청
+      const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+      const result = await model.generateContent('test');  // 간단한 테스트 요청
+      if (!result.response) {
+        throw new Error('API 키가 유효하지 않습니다.');
+      }
     } catch (error) {
       if (error.message.includes('API_KEY_INVALID')) {
         throw new Error('유효하지 않은 API 키입니다.');
@@ -41,7 +44,7 @@ exports.handler = async function(event, context) {
     }
     
     // 실제 콘텐츠 생성
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.0-pro' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
     const result = await model.generateContent(prompt);
     const response = await result.response;
     
@@ -54,13 +57,9 @@ exports.handler = async function(event, context) {
       statusCode: 200,
       headers,
       body: JSON.stringify({
-        candidates: [{
-          content: {
-            parts: [{
-              text: response.text
-            }]
-          }
-        }]
+        response: {
+          text: response.text
+        }
       })
     };
   } catch (error) {

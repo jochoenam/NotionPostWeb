@@ -31,7 +31,10 @@ const GeminiManager = {
             }
 
             const data = await response.json();
-            return data.response;
+            if (!data.response || !data.response.text) {
+                throw new Error('Gemini API가 유효한 응답을 반환하지 않았습니다.');
+            }
+            return data.response.text;
         } catch (error) {
             console.error('Gemini API Error:', error);
             throw new Error(`Gemini API Error: ${error.message}`);

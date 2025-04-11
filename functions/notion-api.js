@@ -24,11 +24,17 @@ exports.handler = async function(event, context) {
       throw new Error('API 토큰이 제공되지 않았습니다.');
     }
 
+    if (!path) {
+      throw new Error('API 경로가 제공되지 않았습니다.');
+    }
+
     // Notion 클라이언트 초기화
     const notion = new Client({ auth: token });
 
     // 데이터베이스 ID 형식 변환 함수
     const formatDatabaseId = (databaseId) => {
+      if (!databaseId) return databaseId;
+      
       // 하이픈 제거
       const cleanId = databaseId.replace(/-/g, '');
       
@@ -77,7 +83,7 @@ exports.handler = async function(event, context) {
         }
       }
     } else if (path === '/pages' && method === 'POST') {
-      if (!body.parent.database_id) {
+      if (!body || !body.parent || !body.parent.database_id) {
         throw new Error('데이터베이스 ID가 필요합니다.');
       }
 
@@ -85,6 +91,17 @@ exports.handler = async function(event, context) {
       body.parent.database_id = formattedId;
 
       response = await notion.pages.create(body);
+    } else if (path === '/integration/check') {
+      // 통합 확인 - 데이터베이스 접근 테스트
+      const databaseId = body?.databaseId;
+      if (!databaseId) {
+        throw new Error('데이터베이스 ID가 필요합니다.');
+      }
+      
+      const formattedId = formatDatabaseId(databaseId);
+      response = await notion.databases.retrieve({
+        database_id: formattedId
+      });
     }
 
     return {
