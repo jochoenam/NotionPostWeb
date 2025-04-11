@@ -421,13 +421,17 @@ const NotionManager = {
 
     async createPage(databaseId, title, content, category, tags, token) {
         try {
-            const formattedId = this.formatDatabaseId(databaseId);
-            console.log('Creating page in database:', formattedId);
+            console.log('Creating page in database:', databaseId);
             
+            // 데이터베이스 ID 형식 변환
+            const formattedId = this.formatDatabaseId(databaseId);
+            
+            // 속성 설정
             const properties = {
                 제목: {
                     title: [
                         {
+                            type: 'text',
                             text: {
                                 content: title
                             }
@@ -446,7 +450,8 @@ const NotionManager = {
                 }
             };
 
-            const blocks = this.convertToBlocks(content);
+            // ContentFormatter를 사용하여 블록 변환
+            const blocks = ContentFormatter.convertToNotionBlocks(content);
 
             const result = await this.callNotionAPI(
                 '/pages',

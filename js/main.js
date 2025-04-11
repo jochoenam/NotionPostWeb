@@ -48,9 +48,45 @@ const APP = {
                 
                 this.state.autoSave = parsedConfig.autoSave !== undefined ? parsedConfig.autoSave : true;
                 this.state.autoPreview = parsedConfig.autoPreview !== undefined ? parsedConfig.autoPreview : true;
+
+                // API 키 유효성 검사
+                if (!this.api.geminiApiKey) {
+                    UI.updateStatus('Gemini API 키가 설정되지 않았습니다. 설정에서 API 키를 입력해주세요.', 'warning');
+                }
+                if (!this.api.notionToken) {
+                    UI.updateStatus('Notion 토큰이 설정되지 않았습니다. 설정에서 토큰을 입력해주세요.', 'warning');
+                }
             } catch (e) {
                 console.error('설정 파싱 오류:', e);
+                UI.updateStatus('설정을 불러오는 중 오류가 발생했습니다.', 'error');
             }
+        }
+    },
+    
+    // 설정 저장
+    saveConfig: function() {
+        const config = {
+            token: this.api.notionToken,
+            database_id: this.api.notionDatabaseId,
+            gemini_api_key: this.api.geminiApiKey,
+            autoSave: this.state.autoSave,
+            autoPreview: this.state.autoPreview
+        };
+        
+        try {
+            localStorage.setItem('notionPostConfig', JSON.stringify(config));
+            UI.updateStatus('설정이 저장되었습니다.');
+            
+            // API 키 유효성 검사
+            if (!this.api.geminiApiKey) {
+                UI.updateStatus('Gemini API 키가 설정되지 않았습니다. 설정에서 API 키를 입력해주세요.', 'warning');
+            }
+            if (!this.api.notionToken) {
+                UI.updateStatus('Notion 토큰이 설정되지 않았습니다. 설정에서 토큰을 입력해주세요.', 'warning');
+            }
+        } catch (e) {
+            console.error('설정 저장 오류:', e);
+            UI.updateStatus('설정을 저장하는 중 오류가 발생했습니다.', 'error');
         }
     },
     
