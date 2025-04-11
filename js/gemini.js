@@ -26,21 +26,17 @@ const GeminiManager = {
             });
 
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({ error: '알 수 없는 오류가 발생했습니다.' }));
-                throw new Error(`Gemini API Error: ${errorData.error || response.statusText}`);
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || 'Gemini API 호출 중 오류가 발생했습니다.');
             }
 
             const data = await response.json();
-            if (!data.response || !data.response.text) {
-                throw new Error('Gemini API가 유효한 응답을 반환하지 않았습니다.');
-            }
             
-            // 사용된 모델 정보 로깅
-            if (data.response.model) {
-                console.log(`사용된 Gemini 모델: ${data.response.model}`);
+            if (!data.success) {
+                throw new Error(data.error || 'Gemini API가 유효한 응답을 반환하지 않았습니다.');
             }
-            
-            return data.response.text;
+
+            return data.content;
         } catch (error) {
             console.error('Gemini API Error:', error);
             throw new Error(`Gemini API Error: ${error.message}`);
@@ -63,26 +59,9 @@ const GeminiManager = {
     
     async generateContent(prompt) {
         try {
-            // localStorage에서 최신 값 가져오기 시도
-            let apiKey = APP.api.geminiApiKey;
-            
-            // 설정에서 값 가져오기 시도
-            if (!apiKey && APP.elements.geminiApiKey) {
-                apiKey = APP.elements.geminiApiKey.value;
-                // 값이 있으면 APP.api에 저장
-                if (apiKey) {
-                    APP.api.geminiApiKey = apiKey;
-                }
-            }
-            
-            // 디버깅 정보
-            console.log('Gemini API 키 상태:', apiKey ? '설정됨' : '미설정');
-            
-            if (!apiKey) {
-                throw new Error('API 키가 제공되지 않았습니다. 설정에서 API 키를 입력해주세요.');
-            }
-
-            return await this.generateResponse(prompt, apiKey);
+            console.log('Gemini API 키 상태:', APP.api.geminiApiKey ? '설정됨' : '미설정');
+            const content = await this.generateResponse(prompt, APP.api.geminiApiKey);
+            return content;
         } catch (error) {
             console.error('Content generation error:', error);
             throw error;

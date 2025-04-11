@@ -114,60 +114,61 @@ const NotionManager = {
     },
     
     // 노션 페이지 생성
-    async createPage(databaseId, title, content, category, tags, token) {
+    async createPage(databaseId, { title, category, tags, content }) {
+        console.log('Creating page in database:', databaseId);
+        
+        const properties = {
+            "Name": {
+                "title": [
+                    {
+                        "text": {
+                            "content": title
+                        }
+                    }
+                ]
+            },
+            "Category": {
+                "select": {
+                    "name": category
+                }
+            },
+            "Tags": {
+                "multi_select": tags.map(tag => ({ "name": tag }))
+            }
+        };
+        
+        const pageData = {
+            "parent": {
+                "database_id": databaseId
+            },
+            "properties": properties,
+            "children": [
+                {
+                    "object": "block",
+                    "type": "paragraph",
+                    "paragraph": {
+                        "rich_text": [
+                            {
+                                "type": "text",
+                                "text": {
+                                    "content": content
+                                }
+                            }
+                        ]
+                    }
+                }
+            ]
+        };
+
+        const token = APP.elements.notionToken.value;
+        
         try {
-            console.log('Creating page in database:', databaseId);
-            
-            // 데이터베이스 ID 형식 변환
             const formattedId = this.formatDatabaseId(databaseId);
             
-            // 태그 처리 개선
-            let processedTags = [];
-            if (tags) {
-                if (Array.isArray(tags)) {
-                    processedTags = tags.map(tag => ({
-                        name: typeof tag === 'string' ? tag.trim() : (tag.name || String(tag)).trim()
-                    }));
-                } else if (typeof tags === 'string') {
-                    processedTags = tags.split(',').map(tag => ({
-                        name: tag.trim()
-                    })).filter(tag => tag.name);
-                }
-            }
-            
-            // 속성 설정
-            const properties = {
-                제목: {
-                    title: [
-                        {
-                            type: 'text',
-                            text: {
-                                content: title
-                            }
-                        }
-                    ]
-                },
-                카테고리: {
-                    select: {
-                        name: category || '미분류'
-                    }
-                },
-                태그: {
-                    multi_select: processedTags
-                }
-            };
-
-            // 콘텐츠 처리 개선
-            const contentBlocks = Array.isArray(content) ? content : this.convertToBlocks(content);
-
             const result = await this.callNotionAPI(
                 '/pages/create',
                 'POST',
-                {
-                    databaseId: formattedId,
-                    properties,
-                    children: contentBlocks
-                },
+                pageData,
                 token
             );
 
@@ -289,7 +290,7 @@ const NotionManager = {
             const contentBlocks = ContentFormatter.generateFormattedContent(title, content, formatType);
             
             // 노션에 페이지 생성
-            const response = await this.createPage(databaseId, title, content, category, tags, token);
+            const response = await this.createPage(databaseId, { title, category, tags, content });
             
             // 성공 메시지 표시
             const url = response.url || '알 수 없음';
@@ -352,7 +353,7 @@ const NotionManager = {
             const contentBlocks = ContentFormatter.generateFormattedContent(title, content, formatType);
             
             // 노션에 페이지 생성
-            const response = await this.createPage(databaseId, title, content, category, tags, token);
+            const response = await this.createPage(databaseId, { title, category, tags, content });
             
             // 성공 메시지 표시
             const url = response.url || '알 수 없음';
