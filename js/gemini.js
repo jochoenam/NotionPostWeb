@@ -57,7 +57,18 @@ const GeminiManager = {
     
     async generateContent(prompt) {
         try {
-            const apiKey = APP.api.geminiApiKey;
+            // localStorage에서 최신 값 가져오기 시도
+            let apiKey = APP.api.geminiApiKey;
+            
+            // 설정에서 값 가져오기 시도
+            if (!apiKey && APP.elements.geminiApiKey) {
+                apiKey = APP.elements.geminiApiKey.value;
+                // 값이 있으면 APP.api에 저장
+                if (apiKey) {
+                    APP.api.geminiApiKey = apiKey;
+                }
+            }
+            
             if (!apiKey) {
                 throw new Error('API 키가 제공되지 않았습니다. 설정에서 API 키를 입력해주세요.');
             }

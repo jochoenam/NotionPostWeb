@@ -119,9 +119,11 @@ const NotionManager = {
                     }
                 },
                 태그: {
-                    multi_select: tags ? tags.split(',').map(tag => ({
+                    multi_select: tags ? (Array.isArray(tags) ? tags.map(tag => ({
+                        name: typeof tag === 'string' ? tag.trim() : tag.name || tag
+                    })) : tags.split(',').map(tag => ({
                         name: tag.trim()
-                    })) : []
+                    }))) : []
                 }
             };
 
