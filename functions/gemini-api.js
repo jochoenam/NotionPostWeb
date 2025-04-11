@@ -31,7 +31,7 @@ exports.handler = async function(event, context) {
     
     // API 키 유효성 검사
     try {
-      const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+      const model = genAI.getGenerativeModel({ model: 'gemini-1.0-pro' });
       await model.generateContent('test');  // 간단한 테스트 요청
     } catch (error) {
       if (error.message.includes('API_KEY_INVALID')) {
@@ -41,7 +41,7 @@ exports.handler = async function(event, context) {
     }
     
     // 실제 콘텐츠 생성
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.0-pro' });
     const result = await model.generateContent(prompt);
     const response = await result.response;
     

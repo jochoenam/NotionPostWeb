@@ -35,10 +35,10 @@ const NotionManager = {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    endpoint,
+                    path: endpoint,
                     method,
-                    token,
-                    ...body
+                    body,
+                    token
                 })
             });
 
