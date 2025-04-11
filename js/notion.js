@@ -4,8 +4,8 @@
  */
 
 const NotionManager = {
-    // Notion API 기본 URL (프록시 URL로 변경)
-    BASE_URL: 'http://localhost:3000/api/notion',
+    // Notion API 기본 URL
+    BASE_URL: 'https://cheerful-daffodil-d3d4fb.netlify.app/.netlify/functions',
     
     // 링크 관리
     links: [],
@@ -22,17 +22,40 @@ const NotionManager = {
         return `${databaseId.slice(0,8)}-${databaseId.slice(8,12)}-${databaseId.slice(12,16)}-${databaseId.slice(16,20)}-${databaseId.slice(20)}`;
     },
     
-    // API 호출을 위한 헤더 생성
-    getHeaders: function(token) {
-        return {
-            'Authorization': `Bearer ${token}`,
-            'Notion-Version': '2022-06-28',
-            'Content-Type': 'application/json'
-        };
+    // API 호출
+    async callNotionAPI(endpoint, method = 'GET', body = null, token) {
+        if (!token) {
+            throw new Error('Notion API 토큰이 필요합니다.');
+        }
+
+        try {
+            const response = await fetch(`${this.BASE_URL}/notion-api`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    endpoint,
+                    method,
+                    token,
+                    ...body
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ error: '알 수 없는 오류가 발생했습니다.' }));
+                throw new Error(errorData.error || `API 호출 실패: ${response.status}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Notion API 호출 오류:', error);
+            throw new Error(`Notion API 오류: ${error.message}`);
+        }
     },
     
     // 데이터베이스 확인
-    checkDatabase: async function() {
+    async checkDatabase() {
         const token = APP.elements.notionToken.value;
         const databaseId = this.formatDatabaseId(APP.elements.notionDatabaseId.value);
         
@@ -45,19 +68,19 @@ const NotionManager = {
         UI.showLoading('데이터베이스 확인 중...');
         
         try {
-            // 시뮬레이션 모드로 변경 (서버 연결 없이 동작)
-            console.log('프록시 서버 연결 오류로 시뮬레이션 모드로 작동합니다.');
-            console.log('데이터베이스 ID 형식 변환:', databaseId);
-            
-            // 시뮬레이션 지연
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            const result = await this.callNotionAPI(
+                '/databases/check',
+                'POST',
+                { databaseId },
+                token
+            );
             
             UI.hideLoading();
-            UI.updateStatus('데이터베이스 확인 성공 (시뮬레이션)');
+            UI.updateStatus('데이터베이스 확인 성공');
             return true;
         } catch (error) {
             console.error('데이터베이스 확인 중 예외 발생:', error);
-            UI.showAlert(`데이터베이스 확인 중 오류가 발생했습니다: ${error.message || error}`);
+            UI.showAlert(`데이터베이스 확인 중 오류가 발생했습니다: ${error.message}`);
             UI.updateStatus('오류 발생');
             UI.hideLoading();
             return false;
@@ -71,34 +94,65 @@ const NotionManager = {
     },
     
     // 노션 페이지 생성
-    createPage: async function(title, contentBlocks, tags = [], category = '') {
-        const token = APP.elements.notionToken.value;
-        const databaseId = this.formatDatabaseId(APP.elements.notionDatabaseId.value);
-        
-        // 데이터베이스 확인
-        if (!await this.checkDatabase()) {
-            throw new Error(`데이터베이스 ID(${databaseId})에 접근할 수 없습니다. 데이터베이스가 존재하고 통합 앱과 공유되었는지 확인하세요.`);
+    async createPage(databaseId, title, content, category, tags, token) {
+        try {
+            console.log('Creating page in database:', databaseId);
+            
+            // 데이터베이스 ID 형식 변환
+            const formattedId = this.formatDatabaseId(databaseId);
+            
+            // 속성 설정
+            const properties = {
+                제목: {
+                    title: [
+                        {
+                            type: 'text',
+                            text: {
+                                content: title
+                            }
+                        }
+                    ]
+                },
+                카테고리: {
+                    select: {
+                        name: category || '미분류'
+                    }
+                },
+                태그: {
+                    multi_select: tags ? tags.split(',').map(tag => ({
+                        name: tag.trim()
+                    })) : []
+                }
+            };
+
+            // 콘텐츠가 문자열이 아닌 경우 처리
+            const contentStr = typeof content === 'string' ? content : JSON.stringify(content, null, 2);
+            
+            // 블록 변환
+            const blocks = this.convertToBlocks(contentStr);
+
+            const result = await this.callNotionAPI(
+                '/pages/create',
+                'POST',
+                {
+                    databaseId: formattedId,
+                    properties,
+                    children: blocks
+                },
+                token
+            );
+
+            return result;
+        } catch (error) {
+            console.error('페이지 생성 오류:', error);
+            throw error;
         }
-        
-        // 시뮬레이션 모드로 변경 (서버 연결 없이 동작)
-        console.log('프록시 서버 연결 오류로 시뮬레이션 모드로 작동합니다.');
-        console.log('페이지 생성 시뮬레이션:', title);
-        
-        // 시뮬레이션 지연
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        // 가상 응답 생성
-        return {
-            id: `sim-page-${Date.now()}`,
-            url: `https://notion.so/example/${Date.now().toString(16)}`,
-            created_time: new Date().toISOString()
-        };
     },
     
     // 노션 통합 설정 확인
-    checkIntegration: async function() {
+    async checkIntegration() {
         const token = APP.elements.notionToken.value;
-        const databaseId = APP.elements.notionDatabaseId.value;
+        const databaseId = this.formatDatabaseId(APP.elements.notionDatabaseId.value);
         
         if (!token || !databaseId) {
             UI.showAlert('Notion API 토큰과 데이터베이스 ID를 모두 입력해주세요.');
@@ -109,16 +163,17 @@ const NotionManager = {
         UI.showLoading('통합 확인 중...');
         
         try {
-            // 시뮬레이션 모드로 변경
-            console.log('프록시 서버 연결 오류로 시뮬레이션 모드로 작동합니다.');
+            await this.callNotionAPI(
+                '/integration/check',
+                'POST',
+                { databaseId },
+                token
+            );
             
-            // 시뮬레이션 지연
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            UI.showAlert('노션 데이터베이스 연결에 성공했습니다! (시뮬레이션 모드)');
-            UI.updateStatus('노션 데이터베이스 연결 성공 (시뮬레이션)');
+            UI.showAlert('노션 데이터베이스 연결에 성공했습니다!');
+            UI.updateStatus('노션 데이터베이스 연결 성공');
         } catch (error) {
-            UI.showAlert(`통합 확인 중 오류가 발생했습니다: ${error.message || error}`);
+            UI.showAlert(`통합 확인 중 오류가 발생했습니다: ${error.message}`);
             UI.updateStatus('오류 발생');
         } finally {
             UI.hideLoading();
@@ -126,7 +181,7 @@ const NotionManager = {
     },
     
     // 새 데이터베이스 생성
-    createDatabase: async function() {
+    async createDatabase() {
         const token = APP.elements.notionToken.value;
         const pageId = APP.elements.pageId.value;
         
@@ -139,27 +194,23 @@ const NotionManager = {
         UI.showLoading('데이터베이스 생성 중...');
         
         try {
-            // 시뮬레이션 모드로 변경
-            console.log('프록시 서버 연결 오류로 시뮬레이션 모드로 작동합니다.');
-            const formattedPageId = this.formatDatabaseId(pageId);
-            console.log('시뮬레이션된 데이터베이스 생성:', formattedPageId);
-            
-            // 시뮬레이션 지연
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            
-            // 가상 데이터베이스 ID 생성
-            const newDbId = `sim-db-${Date.now().toString(16)}`;
+            const result = await this.callNotionAPI(
+                '/databases/create',
+                'POST',
+                { pageId },
+                token
+            );
             
             // 데이터베이스 ID 설정
-            APP.elements.notionDatabaseId.value = newDbId;
+            APP.elements.notionDatabaseId.value = result.id;
             
             // 설정 저장
             SettingsManager.saveSettings();
             
-            UI.showAlert(`새 데이터베이스가 생성되었습니다! (시뮬레이션 모드)\n\n데이터베이스 ID: ${newDbId}\n\n이 ID가 자동으로 설정되었습니다.`);
-            UI.updateStatus('데이터베이스 생성 완료 (시뮬레이션)');
+            UI.showAlert(`새 데이터베이스가 생성되었습니다!\n\n데이터베이스 ID: ${result.id}\n\n이 ID가 자동으로 설정되었습니다.`);
+            UI.updateStatus('데이터베이스 생성 완료');
         } catch (error) {
-            UI.showAlert(`데이터베이스 생성 중 오류가 발생했습니다: ${error.message || error}`);
+            UI.showAlert(`데이터베이스 생성 중 오류가 발생했습니다: ${error.message}`);
             UI.updateStatus('오류 발생');
         } finally {
             UI.hideLoading();
@@ -167,7 +218,7 @@ const NotionManager = {
     },
     
     // 노션에 포스팅
-    postToNotion: async function() {
+    async postToNotion() {
         // 필수 정보 확인
         const token = APP.elements.notionToken.value;
         const databaseId = APP.elements.notionDatabaseId.value;
@@ -209,11 +260,11 @@ const NotionManager = {
             const contentBlocks = ContentFormatter.generateFormattedContent(title, content, formatType);
             
             // 노션에 페이지 생성
-            const response = await this.createPage(title, contentBlocks, tags, category);
+            const response = await this.createPage(databaseId, title, content, category, tags, token);
             
             // 성공 메시지 표시
             const url = response.url || '알 수 없음';
-            UI.showAlert(`노션 페이지가 생성되었습니다! (시뮬레이션 모드)\n\nURL: ${url}\n\n참고: 프록시 서버 연결 오류로 시뮬레이션 모드로 작동합니다.`);
+            UI.showAlert(`노션 페이지가 생성되었습니다!\n\nURL: ${url}\n\n참고: 프록시 서버 연결 오류로 시뮬레이션 모드로 작동합니다.`);
             UI.updateStatus('포스팅 완료 (시뮬레이션)');
             
             // 링크 추가
@@ -230,7 +281,7 @@ const NotionManager = {
     },
     
     // 노션에 포스팅 (미리보기 탭에서)
-    postFromPreview: async function() {
+    async postFromPreview() {
         // 필수 정보 확인
         const token = APP.elements.notionToken.value;
         const databaseId = APP.elements.notionDatabaseId.value;
@@ -272,11 +323,11 @@ const NotionManager = {
             const contentBlocks = ContentFormatter.generateFormattedContent(title, content, formatType);
             
             // 노션에 페이지 생성
-            const response = await this.createPage(title, contentBlocks, tags, category);
+            const response = await this.createPage(databaseId, title, content, category, tags, token);
             
             // 성공 메시지 표시
             const url = response.url || '알 수 없음';
-            UI.showAlert(`노션 페이지가 생성되었습니다! (시뮬레이션 모드)\n\nURL: ${url}\n\n참고: 프록시 서버 연결 오류로 시뮬레이션 모드로 작동합니다.`);
+            UI.showAlert(`노션 페이지가 생성되었습니다!\n\nURL: ${url}\n\n참고: 프록시 서버 연결 오류로 시뮬레이션 모드로 작동합니다.`);
             UI.updateStatus('포스팅 완료 (시뮬레이션)');
             
             // 링크 추가
@@ -369,105 +420,6 @@ const NotionManager = {
                 console.error('링크 데이터 파싱 오류:', e);
                 this.links = [];
             }
-        }
-    },
-
-    async callNotionAPI(path, method, body, token) {
-        try {
-            console.log('Calling Notion API:', { path, method });
-            const response = await fetch('/.netlify/functions/notion-api', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    path,
-                    method,
-                    body,
-                    token
-                })
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(`Notion API Error: ${errorData.error || response.statusText}`);
-            }
-
-            return await response.json();
-        } catch (error) {
-            console.error('Notion API Error:', error);
-            throw error;
-        }
-    },
-
-    async checkDatabase(databaseId, token) {
-        try {
-            const formattedId = this.formatDatabaseId(databaseId);
-            console.log('데이터베이스 ID 형식 변환:', databaseId, '->', formattedId);
-            
-            const result = await this.callNotionAPI(
-                `/databases/${formattedId}`,
-                'GET',
-                null,
-                token
-            );
-            
-            return result;
-        } catch (error) {
-            console.error('데이터베이스 확인 오류:', error);
-            throw error;
-        }
-    },
-
-    async createPage(databaseId, title, content, category, tags, token) {
-        try {
-            console.log('Creating page in database:', databaseId);
-            
-            // 데이터베이스 ID 형식 변환
-            const formattedId = this.formatDatabaseId(databaseId);
-            
-            // 속성 설정
-            const properties = {
-                제목: {
-                    title: [
-                        {
-                            type: 'text',
-                            text: {
-                                content: title
-                            }
-                        }
-                    ]
-                },
-                카테고리: {
-                    select: {
-                        name: category || '미분류'  // 카테고리가 없을 경우 기본값 설정
-                    }
-                },
-                태그: {
-                    multi_select: tags ? tags.split(',').map(tag => ({
-                        name: tag.trim()
-                    })) : []  // 태그가 없을 경우 빈 배열 반환
-                }
-            };
-
-            // ContentFormatter를 사용하여 블록 변환
-            const blocks = ContentFormatter.convertToNotionBlocks(content);
-
-            const result = await this.callNotionAPI(
-                '/pages',
-                'POST',
-                {
-                    parent: { database_id: formattedId },
-                    properties,
-                    children: blocks
-                },
-                token
-            );
-
-            return result;
-        } catch (error) {
-            console.error('페이지 생성 오류:', error);
-            throw error;
         }
     },
 

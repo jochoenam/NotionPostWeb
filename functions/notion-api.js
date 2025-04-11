@@ -44,6 +44,9 @@ exports.handler = async function(event, context) {
     
     if (path.startsWith('/databases/')) {
       const databaseId = path.split('/')[2];
+      if (!databaseId) {
+        throw new Error('유효하지 않은 데이터베이스 ID입니다.');
+      }
       const formattedId = formatDatabaseId(databaseId);
       
       try {

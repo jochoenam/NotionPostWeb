@@ -5,7 +5,7 @@
 
 const GeminiManager = {
     // API 엔드포인트
-    API_URL: '/.netlify/functions/gemini-api',
+    API_URL: 'https://cheerful-daffodil-d3d4fb.netlify.app/.netlify/functions/gemini-api',
     
     async generateResponse(prompt, apiKey) {
         if (!apiKey) {
@@ -26,19 +26,15 @@ const GeminiManager = {
             });
 
             if (!response.ok) {
-                const errorData = await response.json();
+                const errorData = await response.json().catch(() => ({ error: '알 수 없는 오류가 발생했습니다.' }));
                 throw new Error(`Gemini API Error: ${errorData.error || response.statusText}`);
             }
 
             const data = await response.json();
-            if (!data.candidates || !data.candidates[0] || !data.candidates[0].content || !data.candidates[0].content.parts) {
-                throw new Error('Gemini API가 유효하지 않은 응답을 반환했습니다.');
-            }
-
-            return data.candidates[0].content.parts[0].text;
+            return data.response;
         } catch (error) {
             console.error('Gemini API Error:', error);
-            throw error;
+            throw new Error(`Gemini API Error: ${error.message}`);
         }
     },
     
@@ -56,13 +52,18 @@ const GeminiManager = {
         }
     },
     
-    async generateContent(title, content, format, apiKey) {
-        if (!apiKey) {
-            throw new Error('API 키가 제공되지 않았습니다. 설정에서 API 키를 입력해주세요.');
-        }
+    async generateContent(prompt) {
+        try {
+            const apiKey = APP.api.geminiApiKey;
+            if (!apiKey) {
+                throw new Error('API 키가 제공되지 않았습니다. 설정에서 API 키를 입력해주세요.');
+            }
 
-        const prompt = `다음 제목과 내용을 ${format} 형식으로 작성해주세요:\n\n제목: ${title}\n\n내용:\n${content}`;
-        return await this.generateResponse(prompt, apiKey);
+            return await this.generateResponse(prompt, apiKey);
+        } catch (error) {
+            console.error('Content generation error:', error);
+            throw error;
+        }
     },
     
     // 사용 가능한 모델 목록 가져오기 (API를 통한 직접 호출은 제한될 수 있음)

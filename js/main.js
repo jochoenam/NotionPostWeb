@@ -16,9 +16,9 @@ const APP = {
     
     // API 토큰 및 키
     api: {
-        notionToken: '',
-        notionDatabaseId: '',
-        geminiApiKey: ''
+        notionToken: 'ntn_59196931721m9GCQPZe6CPhscvxSMT9DicBmu7OledDV',
+        notionDatabaseId: '1c7dc869-7e89-81ce-8f16-d09e8cf38c46',
+        geminiApiKey: 'AIzaSyCtwyzrnDuhb6J177sA26iL6P3K2-POJ5OQ'
     },
     
     // DOM 요소 참조
@@ -26,8 +26,8 @@ const APP = {
     
     // 앱 초기화
     init: function() {
-        this.loadConfig();
-        this.initElements();
+        this.initElements();  // DOM 요소를 먼저 초기화
+        this.loadConfig();    // 그 다음 설정 로드
         this.initEventListeners();
         this.hideSplashScreen();
         this.startAutoSave();
@@ -42,9 +42,9 @@ const APP = {
         if (config) {
             try {
                 const parsedConfig = JSON.parse(config);
-                this.api.notionToken = parsedConfig.token || '';
-                this.api.notionDatabaseId = parsedConfig.database_id || '';
-                this.api.geminiApiKey = parsedConfig.gemini_api_key || '';
+                this.api.notionToken = parsedConfig.token || this.api.notionToken;
+                this.api.notionDatabaseId = parsedConfig.database_id || this.api.notionDatabaseId;
+                this.api.geminiApiKey = parsedConfig.gemini_api_key || this.api.geminiApiKey;
                 
                 this.state.autoSave = parsedConfig.autoSave !== undefined ? parsedConfig.autoSave : true;
                 this.state.autoPreview = parsedConfig.autoPreview !== undefined ? parsedConfig.autoPreview : true;
@@ -60,6 +60,13 @@ const APP = {
                 console.error('설정 파싱 오류:', e);
                 UI.updateStatus('설정을 불러오는 중 오류가 발생했습니다.', 'error');
             }
+        }
+        
+        // DOM 요소가 초기화된 후에 설정 값 적용
+        if (this.elements.notionToken) {
+            this.elements.notionToken.value = this.api.notionToken;
+            this.elements.notionDatabaseId.value = this.api.notionDatabaseId;
+            this.elements.geminiApiKey.value = this.api.geminiApiKey;
         }
     },
     
